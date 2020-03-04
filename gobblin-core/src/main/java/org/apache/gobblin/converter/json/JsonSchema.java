@@ -16,6 +16,7 @@
  */
 package org.apache.gobblin.converter.json;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -59,12 +60,12 @@ public class JsonSchema extends Schema {
   public static final String MAP_ITEMS_KEY = "values";
   public static final String SOURCE_TYPE = "source.type";
   private final Type type;
+  // Used to store union types
+  private List<JsonSchema> unionTypes = null;
+
   private final JsonObject json;
   private final SchemaType schemaNestedLevel;
-  private JsonSchema secondType;
-  private JsonSchema firstType;
   private JsonArray jsonArray;
-
   public enum SchemaType {
     ROOT, CHILD
   }
@@ -104,28 +105,23 @@ public class JsonSchema extends Schema {
       jsonObject.addProperty(COLUMN_NAME_KEY, DEFAULT_RECORD_COLUMN_NAME);
     }
     setJsonSchemaProperties(jsonObject);
+
     JsonElement typeElement = getDataType().get(TYPE_KEY);
     if (typeElement.isJsonPrimitive()) {
       this.type = Type.valueOf(typeElement.getAsString().toUpperCase());
     } else if (typeElement.isJsonArray()) {
       JsonArray jsonArray = typeElement.getAsJsonArray();
-      if (jsonArray.size() != 2) {
-        throw new RuntimeException("Invalid " + TYPE_KEY + "property in schema for union types");
+      if (jsonArray.size() < 2) {
+        throw new RuntimeException("union type must have 2 or more types defined");
       }
       this.type = UNION;
-      JsonElement type1 = jsonArray.get(0);
-      JsonElement type2 = jsonArray.get(1);
-      if (type1.isJsonPrimitive()) {
-        this.firstType = buildBaseSchema(Type.valueOf(type1.getAsString().toUpperCase()));
-      }
-      if (type2.isJsonPrimitive()) {
-        this.secondType = buildBaseSchema(Type.valueOf(type2.getAsString().toUpperCase()));
-      }
-      if (type1.isJsonObject()) {
-        this.firstType = buildBaseSchema(type1.getAsJsonObject());
-      }
-      if (type2.isJsonObject()) {
-        this.secondType = buildBaseSchema(type2.getAsJsonObject());
+      this.unionTypes = new ArrayList<JsonSchema>();
+      for (JsonElement t : jsonArray) {
+        if (t.isJsonPrimitive()) {
+          this.unionTypes.add(buildBaseSchema(Type.valueOf(t.getAsString().toUpperCase())));
+        } else if (t.isJsonObject()) {
+          this.unionTypes.add(buildBaseSchema(t.getAsJsonObject()));
+        }
       }
     } else {
       throw new RuntimeException("Invalid " + TYPE_KEY + "property in schema");
@@ -175,7 +171,6 @@ public class JsonSchema extends Schema {
    * @return
    */
   public static JsonSchema buildBaseSchema(JsonObject root) {
-    root.addProperty(COLUMN_NAME_KEY, DEFAULT_RECORD_COLUMN_NAME);
     return new JsonSchema(root);
   }
 
@@ -249,12 +244,8 @@ public class JsonSchema extends Schema {
     throw new UnsupportedOperationException("Array items can only be defined using JsonObject or JsonPrimitive.");
   }
 
-  public JsonSchema getFirstTypeSchema() {
-    return this.firstType;
-  }
-
-  public JsonSchema getSecondTypeSchema() {
-    return this.secondType;
+  public List<JsonSchema> getUnionTypeSchemas() {
+    return this.unionTypes;
   }
 
   public int fieldsCount() {
@@ -269,8 +260,8 @@ public class JsonSchema extends Schema {
   }
 
   public List<JsonSchema> getDataTypes() {
-    if (firstType != null && secondType != null) {
-      return Arrays.asList(firstType, secondType);
+    if (this.type == UNION) {
+      return this.unionTypes;
     }
     return Collections.singletonList(this);
   }

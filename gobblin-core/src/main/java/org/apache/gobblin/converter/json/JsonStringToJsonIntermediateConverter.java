@@ -118,29 +118,28 @@ public class JsonStringToJsonIntermediateConverter extends Converter<String, Jso
       throws DataConversionException {
       JsonObject output = new JsonObject();
       for (int i = 0; i < schema.fieldsCount(); i++) {
-        JsonSchema schemaElement = schema.getFieldSchemaAt(i);
-        String columnKey = schemaElement.getColumnName();
+        JsonSchema fieldSchema = schema.getFieldSchemaAt(i);
+        String columnKey = fieldSchema.getColumnName();
         JsonElement parsed;
         if (!record.has(columnKey)) {
           output.add(columnKey, JsonNull.INSTANCE);
           continue;
         }
-
         JsonElement columnValue = record.get(columnKey);
-        switch (schemaElement.getType()) {
+        switch (fieldSchema.getType()) {
           case UNION:
-            parsed = parseUnionType(schemaElement, columnValue);
+            parsed = parseUnionType(fieldSchema, columnValue);
             break;
           case ENUM:
-            parsed = parseEnumType(schemaElement, columnValue);
+            parsed = parseEnumType(fieldSchema, columnValue);
             break;
           default:
             if (columnValue.isJsonArray()) {
-              parsed = parseJsonArrayType(schemaElement, columnValue);
+              parsed = parseJsonArrayType(fieldSchema, columnValue);
             } else if (columnValue.isJsonObject()) {
-              parsed = parseJsonObjectType(schemaElement, columnValue);
+              parsed = parseJsonObjectType(fieldSchema, columnValue);
             } else {
-              parsed = parsePrimitiveType(schemaElement, columnValue);
+              parsed = parsePrimitiveType(fieldSchema, columnValue);
             }
         }
         output.add(columnKey, parsed);
@@ -150,11 +149,16 @@ public class JsonStringToJsonIntermediateConverter extends Converter<String, Jso
 
   private JsonElement parseUnionType(JsonSchema schemaElement, JsonElement columnValue)
       throws DataConversionException {
-    try {
-      return parse(columnValue, schemaElement.getFirstTypeSchema());
-    } catch (DataConversionException e) {
-      return parse(columnValue, schemaElement.getSecondTypeSchema());
+    for (JsonSchema schema : schemaElement.getUnionTypeSchemas()) {
+      try {
+        return parse(columnValue, schema);
+      }
+      // Catch all exceptions and throw DataConversionException below
+      catch (Exception e) {
+        continue;
+      }
     }
+    throw new DataConversionException("Not able to find the column type in union type definitions");
   }
 
   /**

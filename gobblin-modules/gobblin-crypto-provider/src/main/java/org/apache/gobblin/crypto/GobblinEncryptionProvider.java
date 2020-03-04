@@ -89,7 +89,7 @@ public class GobblinEncryptionProvider implements CredentialStoreProvider, Encry
         String keyName = EncryptionConfigParser.getKeyName(parameters);
         String cipherName = EncryptionConfigParser.getCipher(parameters);
 
-        // if not using a keystore then use password based encryption
+        // if not using a keystore, use password based encryption
         if (keystorePathStr == null) {
           Preconditions.checkNotNull(password, "Must specify an en/decryption password for GPGCodec!");
           return new GPGCodec(password, cipherName);

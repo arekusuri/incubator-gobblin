@@ -827,7 +827,7 @@
       ]
     }
   ],
-  "jsonWithUnionType": [
+  "jsonWithUnionTypeString": [
     {
       "b": "hello"
     },
@@ -837,13 +837,98 @@
         "dataType": {
           "type": [
             "null",
-            "string"
+            "int",
+            "string",
+            {
+              "dataType" : {
+                "type": "array",
+                "items": "string"
+              }
+            }
           ]
         }
       }
     ],
     {
       "b": "hello"
+    }
+  ],
+  "jsonWithUnionTypeInt": [
+    {
+      "b": 1
+    },
+    [
+      {
+        "columnName": "b",
+        "dataType": {
+          "type": [
+            "null",
+            "int",
+            "string",
+            {
+              "dataType" : {
+                "type": "array",
+                "items": "string"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    {
+      "b": 1
+    }
+  ],
+  "jsonWithUnionTypeNull": [
+    {
+      "b": null
+    },
+    [
+      {
+        "columnName": "b",
+        "dataType": {
+          "type": [
+            "null",
+            "int",
+            "string",
+            {
+              "dataType" : {
+                "type": "array",
+                "items": "string"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    {
+      "b": null
+    }
+  ],
+  "jsonWithUnionTypeArrayOfStrings": [
+    {
+      "b": ["a","b","c"]
+    },
+    [
+      {
+        "columnName": "b",
+        "dataType": {
+          "type": [
+            "null",
+            "int",
+            "string",
+            {
+              "dataType" : {
+                "type": "array",
+                "items": "string"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    {
+      "b": ["a","b","c"]
     }
   ],
   "jsonWithUnionNullAndEnums": [
